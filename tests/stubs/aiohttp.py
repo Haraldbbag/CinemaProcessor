@@ -84,8 +84,10 @@ class _Request:
         )
         headers = dict(self.headers)
         body = None
-        if self.data is not None:
+        if isinstance(self.data, FormData):
             body, headers["Content-Type"] = self.data.encode()
+        elif self.data is not None:
+            body = self.data
         try:
             conn.request(
                 self.method,
@@ -111,8 +113,8 @@ class ClientSession:
     def get(self, url: str, headers: dict | None = None, timeout: ClientTimeout | None = None):
         return _Request(url, timeout, "GET", headers)
 
-    def post(self, url: str, data: FormData | None = None, timeout: ClientTimeout | None = None):
-        return _Request(url, timeout, "POST", None, data)
+    def post(self, url: str, data=None, headers: dict | None = None, timeout: ClientTimeout | None = None):
+        return _Request(url, timeout, "POST", headers, data)
 
     async def close(self) -> None:
         return None

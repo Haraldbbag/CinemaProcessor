@@ -88,11 +88,11 @@ class ProcessorConfigFlow(ConfigFlow, domain=DOMAIN):
         try:
             await driver.check_web()
         except ProcessorAuthError as err:
-            _LOGGER.debug("Web login to %s failed: %s", data[CONF_HOST], err)
+            _LOGGER.warning("Web login to %s failed: %s", data[CONF_HOST], err)
             errors["base"] = "invalid_auth"
             return None
         except ProcessorError as err:
-            _LOGGER.debug("Web interface of %s: %s", data[CONF_HOST], err)
+            _LOGGER.warning("Web interface of %s: %s", data[CONF_HOST], err)
             errors["base"] = "web_unreachable"
             return None
         finally:

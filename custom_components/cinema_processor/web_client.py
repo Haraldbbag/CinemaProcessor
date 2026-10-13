@@ -72,6 +72,16 @@ class AtmosTracker:
         }
 
 
+def multipart_form(fields: dict[str, str]) -> tuple[bytes, str]:
+    boundary = "----CinemaProcessor" + "".join(random.choices("0123456789abcdef", k=16))
+    parts = [
+        f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'
+        for name, value in fields.items()
+    ]
+    parts.append(f"--{boundary}--\r\n")
+    return "".join(parts).encode("utf-8"), f"multipart/form-data; boundary={boundary}"
+
+
 class _SessionExpired(Exception):
     pass
 
@@ -108,20 +118,23 @@ class WebClient:
         return self._session
 
     async def login(self) -> None:
-        form = aiohttp.FormData()
-        form.add_field("clientId", self._client_id)
-        form.add_field("userName", self._username)
-        form.add_field("password", self._password)
+        # Built by hand so it looks exactly like the browser's form post
+        # (aiohttp.FormData would send plain text fields url-encoded).
+        body, content_type = multipart_form(
+            {"clientId": self._client_id, "userName": self._username, "password": self._password}
+        )
         try:
             async with self._http().post(
                 self.base + LOGIN_PATH,
-                data=form,
+                data=body,
+                headers={"Content-Type": content_type},
                 timeout=aiohttp.ClientTimeout(total=HTTP_TIMEOUT),
             ) as resp:
                 text = await resp.text(errors="replace")
                 status = resp.status
         except (aiohttp.ClientError, asyncio.TimeoutError) as err:
             raise ProcessorError(f"Weboberfläche nicht erreichbar: {err}") from err
+        _LOGGER.debug("%s login -> HTTP %s: %.300r", self.base, status, text)
         m = _SESSION_RE.search(text)
         if m and m.group(1):
             self._session_id = m.group(1)
@@ -145,7 +158,7 @@ class WebClient:
                 if resp.status in (401, 403):
                     raise _SessionExpired
                 if resp.status != 200:
-                    raise ProcessorError(f"Weboberfläche: HTTP {resp.status}")
+                    raise ProcessorError(f"Weboberfläche: {path} -> HTTP {resp.status}")
                 text = await resp.text(errors="replace")
         except (aiohttp.ClientError, asyncio.TimeoutError) as err:
             raise ProcessorError(f"Weboberfläche nicht erreichbar: {err}") from err
