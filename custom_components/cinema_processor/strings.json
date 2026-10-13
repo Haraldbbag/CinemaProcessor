@@ -1,0 +1,150 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add cinema processor",
+        "description": "Choose the model",
+        "menu_options": {
+          "cp750": "Dolby CP750",
+          "cp850": "Dolby CP850",
+          "cp950": "Dolby CP950 / CP950A"
+        }
+      },
+      "cp750": {
+        "title": "Dolby CP750",
+        "description": "ASCII control port is usually 61408. Starts in read-only mode.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "name": "Name (e.g. Screen 1)"
+        }
+      },
+      "cp850": {
+        "title": "Dolby CP850",
+        "description": "ASCII control port is usually 61408. The web interface login is only needed for the Atmos sensor (leave empty = no Atmos sensor). Starts in read-only mode.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "name": "Name (e.g. Screen 1)",
+          "web_username": "Web interface user",
+          "web_password": "Web interface password"
+        }
+      },
+      "cp950": {
+        "title": "Dolby CP950 / CP950A",
+        "description": "ASCII control port is usually 61408. The web interface login is only needed for the Atmos sensor (CP950A only; leave empty = no Atmos sensor). Starts in read-only mode.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "name": "Name (e.g. Screen 1)",
+          "web_username": "Web interface user",
+          "web_password": "Web interface password"
+        }
+      },
+      "reconfigure": {
+        "title": "Change connection",
+        "description": "Leave the password empty to keep the stored one.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "web_username": "Web interface user",
+          "web_password": "Web interface password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the processor's control port.",
+      "invalid_auth": "Web interface login rejected.",
+      "web_unreachable": "Control port reachable, but the web interface is not."
+    },
+    "abort": {
+      "already_configured": "This processor is already configured.",
+      "reconfigure_successful": "Connection updated."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "data": {
+          "scan_interval": "Scan interval (s)",
+          "read_only": "Read only",
+          "macros": "Macro names"
+        },
+        "data_description": {
+          "read_only": "Blocks all commands (input/macro, volume, mute, writing raw commands).",
+          "macros": "One macro per line as \"number=name\", e.g. 1=5.1 + Dolby Atmos. Macros that were active once are learned automatically."
+        }
+      }
+    }
+  },
+  "entity": {
+    "select": {
+      "input": {
+        "name": "Input"
+      },
+      "macro": {
+        "name": "Macro"
+      }
+    },
+    "number": {
+      "fader": {
+        "name": "Volume"
+      }
+    },
+    "switch": {
+      "mute": {
+        "name": "Mute"
+      }
+    },
+    "button": {
+      "fader_up": {
+        "name": "Volume up (+0.1)"
+      },
+      "fader_down": {
+        "name": "Volume down (−0.1)"
+      }
+    },
+    "binary_sensor": {
+      "atmos": {
+        "name": "Dolby Atmos",
+        "state_attributes": {
+          "status_code": {
+            "name": "Status code"
+          },
+          "reversion_reason": {
+            "name": "Reversion reason"
+          },
+          "frame_rate": {
+            "name": "Frame rate"
+          },
+          "uuid": {
+            "name": "UUID"
+          },
+          "encrypted": {
+            "name": "Encrypted"
+          }
+        }
+      },
+      "connected": {
+        "name": "Connected"
+      }
+    }
+  },
+  "services": {
+    "send_command": {
+      "name": "Send command",
+      "description": "Sends an ASCII line to the control port and returns all replies, e.g. \"sys.fader ?\" or \"help\". In read-only mode only queries (…?), help and status are allowed.",
+      "fields": {
+        "device_id": {
+          "name": "Processor",
+          "description": "Processor"
+        },
+        "command": {
+          "name": "Command",
+          "description": "CP750: cp750.sys.fader ? — CP850/CP950: sys.fader ?"
+        }
+      }
+    }
+  }
+}

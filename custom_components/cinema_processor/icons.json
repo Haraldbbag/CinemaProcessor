@@ -1,0 +1,43 @@
+{
+  "entity": {
+    "select": {
+      "input": {
+        "default": "mdi:import"
+      },
+      "macro": {
+        "default": "mdi:playlist-play"
+      }
+    },
+    "number": {
+      "fader": {
+        "default": "mdi:volume-high"
+      }
+    },
+    "switch": {
+      "mute": {
+        "default": "mdi:volume-high",
+        "state": {
+          "on": "mdi:volume-off"
+        }
+      }
+    },
+    "button": {
+      "fader_up": {
+        "default": "mdi:volume-plus"
+      },
+      "fader_down": {
+        "default": "mdi:volume-minus"
+      }
+    },
+    "binary_sensor": {
+      "atmos": {
+        "default": "mdi:dolby"
+      }
+    }
+  },
+  "services": {
+    "send_command": {
+      "service": "mdi:console"
+    }
+  }
+}

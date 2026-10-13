@@ -1,0 +1,14 @@
+{
+  "domain": "cinema_processor",
+  "name": "Cinema Processor",
+  "codeowners": [
+    "@Haraldbbag"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/Haraldbbag/CinemaProcessor",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/Haraldbbag/CinemaProcessor/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

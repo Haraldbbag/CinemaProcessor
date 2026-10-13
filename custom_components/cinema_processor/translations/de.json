@@ -1,0 +1,150 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Kinoprozessor hinzufügen",
+        "description": "Modell wählen",
+        "menu_options": {
+          "cp750": "Dolby CP750",
+          "cp850": "Dolby CP850",
+          "cp950": "Dolby CP950 / CP950A"
+        }
+      },
+      "cp750": {
+        "title": "Dolby CP750",
+        "description": "Steuerport (ASCII) normalerweise 61408. Wird zunächst im Modus „Nur lesen“ eingerichtet.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "name": "Name (z. B. Kino 1)"
+        }
+      },
+      "cp850": {
+        "title": "Dolby CP850",
+        "description": "Steuerport (ASCII) normalerweise 61408. Benutzer/Passwort der Weboberfläche werden nur für die Atmos-Anzeige gebraucht (leer lassen = keine Atmos-Anzeige). Wird zunächst im Modus „Nur lesen“ eingerichtet.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "name": "Name (z. B. Kino 1)",
+          "web_username": "Benutzer Weboberfläche",
+          "web_password": "Passwort Weboberfläche"
+        }
+      },
+      "cp950": {
+        "title": "Dolby CP950 / CP950A",
+        "description": "Steuerport (ASCII) normalerweise 61408. Benutzer/Passwort der Weboberfläche werden nur für die Atmos-Anzeige gebraucht (nur CP950A; leer lassen = keine Atmos-Anzeige). Wird zunächst im Modus „Nur lesen“ eingerichtet.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "name": "Name (z. B. Kino 1)",
+          "web_username": "Benutzer Weboberfläche",
+          "web_password": "Passwort Weboberfläche"
+        }
+      },
+      "reconfigure": {
+        "title": "Verbindung ändern",
+        "description": "Passwort leer lassen, um das gespeicherte zu behalten.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "web_username": "Benutzer Weboberfläche",
+          "web_password": "Passwort Weboberfläche"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Keine Verbindung zum Steuerport des Prozessors.",
+      "invalid_auth": "Anmeldung an der Weboberfläche abgelehnt.",
+      "web_unreachable": "Steuerport erreichbar, Weboberfläche aber nicht."
+    },
+    "abort": {
+      "already_configured": "Dieser Prozessor ist bereits eingerichtet.",
+      "reconfigure_successful": "Verbindung aktualisiert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Optionen",
+        "data": {
+          "scan_interval": "Abfrageintervall (s)",
+          "read_only": "Nur lesen",
+          "macros": "Makronamen"
+        },
+        "data_description": {
+          "read_only": "Blockiert alle Schaltbefehle (Eingang/Makro, Lautstärke, Mute, schreibende Rohbefehle).",
+          "macros": "Ein Makro pro Zeile als „Nummer=Name“, z. B. 1=5.1 + Dolby Atmos. Makros, die einmal aktiv waren, lernt die Integration selbst."
+        }
+      }
+    }
+  },
+  "entity": {
+    "select": {
+      "input": {
+        "name": "Eingang"
+      },
+      "macro": {
+        "name": "Makro"
+      }
+    },
+    "number": {
+      "fader": {
+        "name": "Lautstärke"
+      }
+    },
+    "switch": {
+      "mute": {
+        "name": "Mute"
+      }
+    },
+    "button": {
+      "fader_up": {
+        "name": "Lauter (+0,1)"
+      },
+      "fader_down": {
+        "name": "Leiser (−0,1)"
+      }
+    },
+    "binary_sensor": {
+      "atmos": {
+        "name": "Dolby Atmos",
+        "state_attributes": {
+          "status_code": {
+            "name": "Statuscode"
+          },
+          "reversion_reason": {
+            "name": "Rückfallgrund"
+          },
+          "frame_rate": {
+            "name": "Bildrate"
+          },
+          "uuid": {
+            "name": "UUID"
+          },
+          "encrypted": {
+            "name": "Verschlüsselt"
+          }
+        }
+      },
+      "connected": {
+        "name": "Verbunden"
+      }
+    }
+  },
+  "services": {
+    "send_command": {
+      "name": "Befehl senden",
+      "description": "Sendet eine ASCII-Zeile an den Steuerport und gibt alle Antworten zurück, z. B. „sys.fader ?“ oder „help“. Im Modus „Nur lesen“ sind nur Abfragen (…?), help und status erlaubt.",
+      "fields": {
+        "device_id": {
+          "name": "Prozessor",
+          "description": "Prozessor"
+        },
+        "command": {
+          "name": "Befehl",
+          "description": "CP750: cp750.sys.fader ? — CP850/CP950: sys.fader ?"
+        }
+      }
+    }
+  }
+}
