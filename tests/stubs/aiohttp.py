@@ -27,6 +27,24 @@ class BasicAuth:
         return "Basic " + base64.b64encode(raw).decode()
 
 
+class FormData:
+    def __init__(self) -> None:
+        self.fields: list[tuple[str, str]] = []
+
+    def add_field(self, name: str, value: str) -> None:
+        self.fields.append((name, value))
+
+    def encode(self) -> tuple[bytes, str]:
+        boundary = "----stubboundary7MA4YWxk"
+        parts = []
+        for name, value in self.fields:
+            parts.append(
+                f"--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n{value}\r\n"
+            )
+        parts.append(f"--{boundary}--\r\n")
+        return "".join(parts).encode(), f"multipart/form-data; boundary={boundary}"
+
+
 @dataclass
 class ClientTimeout:
     total: float | None = None
@@ -48,17 +66,33 @@ class _Response:
 
 
 class _Request:
-    def __init__(self, url: str, auth: BasicAuth | None, timeout: ClientTimeout | None) -> None:
-        self.url, self.auth, self.timeout = url, auth, timeout
+    def __init__(
+        self,
+        url: str,
+        timeout: ClientTimeout | None,
+        method: str = "GET",
+        headers: dict | None = None,
+        data: FormData | None = None,
+    ) -> None:
+        self.url, self.timeout, self.method = url, timeout, method
+        self.headers, self.data = dict(headers or {}), data
 
     def _fetch(self) -> _Response:
         parts = urlsplit(self.url)
         conn = http.client.HTTPConnection(
             parts.hostname, parts.port or 80, timeout=(self.timeout.total if self.timeout else 10)
         )
-        headers = {"Authorization": self.auth.encode()} if self.auth else {}
+        headers = dict(self.headers)
+        body = None
+        if self.data is not None:
+            body, headers["Content-Type"] = self.data.encode()
         try:
-            conn.request("GET", parts.path + ("?" + parts.query if parts.query else ""), headers=headers)
+            conn.request(
+                self.method,
+                parts.path + ("?" + parts.query if parts.query else ""),
+                body=body,
+                headers=headers,
+            )
             resp = conn.getresponse()
             return _Response(resp.status, resp.read())
         except OSError as err:
@@ -74,8 +108,11 @@ class _Request:
 
 
 class ClientSession:
-    def get(self, url: str, auth: BasicAuth | None = None, timeout: ClientTimeout | None = None):
-        return _Request(url, auth, timeout)
+    def get(self, url: str, headers: dict | None = None, timeout: ClientTimeout | None = None):
+        return _Request(url, timeout, "GET", headers)
+
+    def post(self, url: str, data: FormData | None = None, timeout: ClientTimeout | None = None):
+        return _Request(url, timeout, "POST", None, data)
 
     async def close(self) -> None:
         return None

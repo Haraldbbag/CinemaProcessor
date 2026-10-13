@@ -98,8 +98,8 @@ async def _cp850() -> None:
     st = fake_dolby.State("cp850")
     server = await fake_dolby.start_ascii(st, "127.0.0.1", 16409)
     http = fake_dolby.start_http(st, "127.0.0.1", 18080)
-    d = DolbyDriver("127.0.0.1", 16409, "cp850", "admin", "secret", "1=5.1 + Dolby Atmos")
-    d.web = WebClient("127.0.0.1", "admin", "secret", port=18080)
+    d = DolbyDriver("127.0.0.1", 16409, "cp850", "admin", "admin", "1=5.1 + Dolby Atmos")
+    d.web = WebClient("127.0.0.1", "admin", "admin", port=18080)
     try:
         info = await d.device_info()
         assert info.model == "CP850", info
@@ -126,8 +126,11 @@ async def _cp850() -> None:
         st.events.append(fake_dolby.atmos_event(2))
         await d.update(data)
         assert data.atmos is False and data.atmos_attrs["status_code"] == 2
+        # session expires (e.g. processor rebooted): logs in again by itself
+        http.expire_sessions()
         await d.update(data)
-        assert data.atmos is False
+        assert data.atmos is False and data.web_error is None
+        assert sum(1 for x in st.log if x.startswith("web login")) == 2, st.log
 
         # macro names learned from the device; unknown name refused
         assert d.learned_macros[1] == "5.1 + Dolby Atmos"

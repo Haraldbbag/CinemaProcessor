@@ -88,8 +88,11 @@ dem AES-Strang auf 5.1/7.1 zurück, geht der Sensor aus, obwohl das Makro
 weiter „… + Dolby Atmos“ heißt.
 
 Quelle ist dieselbe Schnittstelle, die die Weboberfläche des Prozessors für
-ihre Statusseite nutzt (`/prototype/TroutMockData?get_updates`, nur lesend,
-HTTP Basic Auth). Solange Atmos läuft, meldet das Gerät laufend
+ihre Statusseite nutzt: Die Integration meldet sich wie der Browser an
+(`TroutMockData?login`, Formular mit Benutzer/Passwort, Antwort enthält eine
+`sessionId`) und liest dann nur `TroutMockData?get_updates` (Header
+`SessionId`/`ClientId`). Läuft die Sitzung ab (z. B. Neustart des Prozessors),
+meldet sie sich selbst neu an. Solange Atmos läuft, meldet das Gerät laufend
 `AtmosContentEvent` mit `status: 1`; endet Atmos, kommt einmal `status: 2`.
 Bleiben die Meldungen 20 s aus, gilt Atmos ebenfalls als beendet.
 
@@ -135,7 +138,7 @@ Neustart wieder). Die Integration deshalb:
 | CP850: Atmos-Ereignisse der Weboberfläche (an/aus) | am Gerät mitgeschnitten |
 | CP950/CP950A | gleiche ASCII-Befehle und gleiche Weboberfläche; Atmos-Durchlauf noch nicht |
 | CP750 | laut Handbuch, noch nicht am Gerät getestet |
-| Stört das Mitlesen von `get_updates` eine offene Weboberfläche? | noch offen – falls die Statusseite im Browser hakt, Benutzer leeren |
+| Stört die zusätzliche Web-Anmeldung eine offene Weboberfläche im Browser? | noch offen – falls der Browser abgemeldet wird oder die Statusseite hakt, Benutzer leeren |
 
 ## Tests (ohne Home Assistant)
 

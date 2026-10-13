@@ -1,7 +1,7 @@
 """Read-only access to the CP850/CP950 web interface for the Dolby Atmos state.
 
-The web UI (GWT app under /prototype/) polls
-    GET /prototype/TroutMockData?get_updates      (HTTP Basic auth)
+The web UI (GWT app under /prototype/) logs in, then polls
+    GET /prototype/TroutMockData?get_updates      (headers SessionId, ClientId)
 and receives a JSON list of change events. While Dolby Atmos is rendered the
 processor keeps sending
 
@@ -18,6 +18,8 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import random
+import re
 import time
 from typing import Any
 
@@ -28,7 +30,8 @@ from .common import ProcessorAuthError, ProcessorError
 _LOGGER = logging.getLogger(__name__)
 
 UPDATES_PATH = "/prototype/TroutMockData?get_updates"
-STATUS_PATH = "/prototype/TroutMockData?product_status"
+LOGIN_PATH = "/prototype/TroutMockData?login"
+_SESSION_RE = re.compile(r"sessionId=([^;\s]*)")
 HTTP_TIMEOUT = 8.0
 
 ATMOS_EVENT = "AtmosContentEvent"
@@ -69,7 +72,20 @@ class AtmosTracker:
         }
 
 
+class _SessionExpired(Exception):
+    pass
+
+
 class WebClient:
+    """Logs in like the web UI and polls the update feed.
+
+    Login (from the web UI code): multipart form POST to
+    /prototype/TroutMockData?login with the fields clientId, userName and
+    password. The answer text contains "sessionId=<id>;" (and
+    "loggedInUserLevel=<n>;"); every later request carries the headers
+    "SessionId: <id>" and "ClientId: <number>". No HTTP Basic auth.
+    """
+
     def __init__(
         self,
         host: str,
@@ -79,22 +95,55 @@ class WebClient:
         port: int = 80,
     ) -> None:
         self.base = f"http://{host}" if port == 80 else f"http://{host}:{port}"
-        self._auth = aiohttp.BasicAuth(username, password or "")
+        self._username = username
+        self._password = password or ""
         self._session = session
         self._own_session = session is None
-        self._started = False
+        self._client_id = str(random.randint(100000000, 999999999))
+        self._session_id: str | None = None
 
-    async def _get(self, path: str) -> Any:
+    def _http(self) -> aiohttp.ClientSession:
         if self._session is None:
             self._session = aiohttp.ClientSession()
+        return self._session
+
+    async def login(self) -> None:
+        form = aiohttp.FormData()
+        form.add_field("clientId", self._client_id)
+        form.add_field("userName", self._username)
+        form.add_field("password", self._password)
         try:
-            async with self._session.get(
+            async with self._http().post(
+                self.base + LOGIN_PATH,
+                data=form,
+                timeout=aiohttp.ClientTimeout(total=HTTP_TIMEOUT),
+            ) as resp:
+                text = await resp.text(errors="replace")
+                status = resp.status
+        except (aiohttp.ClientError, asyncio.TimeoutError) as err:
+            raise ProcessorError(f"Weboberfläche nicht erreichbar: {err}") from err
+        m = _SESSION_RE.search(text)
+        if m and m.group(1):
+            self._session_id = m.group(1)
+            _LOGGER.debug("%s: logged in to the web interface", self.base)
+            return
+        self._session_id = None
+        if status == 200 or status in (401, 403):
+            raise ProcessorAuthError("Weboberfläche: Benutzer oder Passwort falsch")
+        raise ProcessorError(f"Weboberfläche: Anmeldung HTTP {status}")
+
+    async def _get(self, path: str) -> Any:
+        headers = {"ClientId": self._client_id}
+        if self._session_id:
+            headers["SessionId"] = self._session_id
+        try:
+            async with self._http().get(
                 self.base + path,
-                auth=self._auth,
+                headers=headers,
                 timeout=aiohttp.ClientTimeout(total=HTTP_TIMEOUT),
             ) as resp:
                 if resp.status in (401, 403):
-                    raise ProcessorAuthError("Weboberfläche: Anmeldung abgelehnt")
+                    raise _SessionExpired
                 if resp.status != 200:
                     raise ProcessorError(f"Weboberfläche: HTTP {resp.status}")
                 text = await resp.text(errors="replace")
@@ -109,13 +158,18 @@ class WebClient:
             return []
 
     async def poll(self) -> list[Any]:
-        """Return the events since the last poll."""
-        if not self._started:
-            # The web UI reads the full state once before polling for updates.
-            status = await self._get(STATUS_PATH)
-            _LOGGER.debug("%s product_status: %.2000s", self.base, json.dumps(status))
-            self._started = True
-        events = await self._get(UPDATES_PATH)
+        """Return the events since the last poll (logs in when needed)."""
+        if self._session_id is None:
+            await self.login()
+        try:
+            events = await self._get(UPDATES_PATH)
+        except _SessionExpired:
+            await self.login()  # session timed out or processor rebooted
+            try:
+                events = await self._get(UPDATES_PATH)
+            except _SessionExpired:
+                self._session_id = None
+                raise ProcessorAuthError("Weboberfläche: Sitzung abgelehnt") from None
         return events if isinstance(events, list) else [events]
 
     async def close(self) -> None:

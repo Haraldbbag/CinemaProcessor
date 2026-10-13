@@ -20,6 +20,7 @@ import base64
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import pathlib
+import re
 import sys
 import threading
 import types
@@ -134,23 +135,40 @@ def atmos_event(status: int, frame: int = 1) -> dict:
     }
 
 
-def start_http(st: State, host: str, port: int, user: str = "admin", password: str = "secret"):
-    expected = "Basic " + base64.b64encode(f"{user}:{password}".encode()).decode()
+def start_http(st: State, host: str, port: int, user: str = "admin", password: str = "admin"):
+    """Login as the CP850 web UI does it: multipart POST ?login -> sessionId=...;"""
     frame = [0]
+    sessions: set[str] = set()
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args) -> None:  # quiet
             pass
 
+        def _send(self, status: int, data: bytes, ctype: str = "text/html") -> None:
+            self.send_response(status)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def do_POST(self) -> None:  # noqa: N802
+            body = self.rfile.read(int(self.headers.get("Content-Length", 0))).decode()
+            if not self.path.endswith("?login"):
+                return self._send(404, b"")
+            fields = dict(re.findall(r'name="([^"]+)"\r\n\r\n([^\r]*)\r\n', body))
+            st.log.append(f"web login {fields.get('userName')}")
+            if fields.get("userName") == user and fields.get("password") == password and fields.get("clientId"):
+                sid = base64.b16encode(fields["clientId"].encode()).decode()[:16]
+                sessions.add(sid)
+                return self._send(200, f"sessionId={sid};loggedInUserLevel=3;".encode(), "text/plain")
+            return self._send(200, b"error=invalid;", "text/plain")
+
         def do_GET(self) -> None:  # noqa: N802
-            if self.headers.get("Authorization") != expected:
-                self.send_response(401)
-                self.send_header("WWW-Authenticate", 'Basic realm="cp850"')
-                self.end_headers()
-                return
             if self.path.endswith("?product_status"):
-                body: object = {"productName": "CP850"}
-            elif self.path.endswith("?get_updates"):
+                return self._send(200, b"shutdown_required=false;\nproduct=CP850;\n", "text/plain")
+            if self.headers.get("SessionId") not in sessions:
+                return self._send(401, b"")
+            if self.path.endswith("?get_updates"):
                 events = [{"id": "SpeakerMeterStateEvent_1005", "speakerIndex": 0,
                            "peakLevel": 20, "rmsLevel": 14}]
                 if st.atmos_playing:
@@ -160,17 +178,14 @@ def start_http(st: State, host: str, port: int, user: str = "admin", password: s
                 st.events = []
                 body = events
             else:
-                self.send_response(404)
-                self.end_headers()
-                return
-            data = json.dumps(body).encode()
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html")
-            self.send_header("Content-Length", str(len(data)))
-            self.end_headers()
-            self.wfile.write(data)
+                return self._send(404, b"")
+            self._send(200, json.dumps(body).encode())
+
+    def expire_sessions() -> None:
+        sessions.clear()
 
     server = ThreadingHTTPServer((host, port), Handler)
+    server.expire_sessions = expire_sessions  # type: ignore[attr-defined]
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server
 
@@ -182,7 +197,7 @@ async def _main() -> None:
     st = State(model)
     server = await start_ascii(st, "0.0.0.0", ascii_port)
     start_http(st, "0.0.0.0", http_port)
-    print(f"Fake Dolby {model}: ASCII {ascii_port}, web {http_port} (admin/secret)")
+    print(f"Fake Dolby {model}: ASCII {ascii_port}, web {http_port} (admin/admin)")
     async with server:
         await server.serve_forever()
 
