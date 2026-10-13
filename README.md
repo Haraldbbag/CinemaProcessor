@@ -34,7 +34,7 @@ dann das Modell wählen.
 | Host | IP-Adresse des Prozessors |
 | Port | ASCII-Steuerport, Standard 61408 |
 | Name | z. B. „Kino 1“ – Gerätename und Präfix der Entitäten |
-| Benutzer / Passwort Weboberfläche | nur CP850/CP950: dieselben Zugangsdaten wie im Browser, nur für die Atmos-Anzeige. Leer lassen = keine Atmos-Anzeige |
+| Benutzer / Passwort Weboberfläche | nur CP850/CP950: dieselben Zugangsdaten wie im Browser (vorbelegt mit der Dolby-Werkseinstellung admin/admin), nur für die Atmos-Anzeige. Benutzer leeren = keine Atmos-Anzeige |
 
 Pro Prozessor erneut hinzufügen. IP-Wechsel oder neues Passwort: **⋮ → Neu konfigurieren**.
 
@@ -57,7 +57,7 @@ ersten erfolgreichen Test in den Optionen ausschalten.
 | **Auswahl „Eingang“ / „Makro“** | `cp750.sys.input_mode` (Digital 1–4, Multi-Ch Analog, NonSync, Mic) | `sys.macro_preset` / `sys.macro_name` |
 | **Zahl „Lautstärke“** | `cp750.sys.fader`, 0.0–10.0 (7.0 = Referenzpegel) | `sys.fader` |
 | **Schalter „Mute“** | `cp750.sys.mute` | `sys.mute` |
-| **Buttons „Lauter“ / „Leiser“** | `cp750.ctrl.fader_delta ±1` (= ±0,1) | `ctrl.fader_delta ±1` |
+| **Buttons „Lauter“ / „Leiser“** (±0,1) | `cp750.ctrl.fader_delta ±1` (= ±0,1) | `ctrl.fader_delta ±1` |
 | **Binärsensor „Dolby Atmos“** | – | an, solange Atmos **wirklich gerendert** wird |
 | Binärsensor „Verbunden“ | Diagnose | Diagnose |
 
@@ -71,7 +71,8 @@ Integration den Zustand sofort neu ein.
 keine Liste aller Makros. Die Integration merkt sich deshalb jedes Makro, das
 einmal aktiv war (bleibt über Neustarts erhalten). Damit von Anfang an alle
 Makros in der Auswahl stehen, in den Optionen eintragen – ein Makro pro Zeile,
-Nummer wie in der Makro-Reihenfolge des Geräts:
+Nummer = „front panel button“ bzw. Makro-Reihenfolge im Makro-Editor des Geräts
+(das ist die Zahl, die `sys.macro_preset` liefert):
 
 ```
 1=5.1 + Dolby Atmos
@@ -107,9 +108,12 @@ Modus „Nur lesen“ sind nur Abfragen (`… ?`), `help` und `status` erlaubt.
 action: cinema_processor.send_command
 data:
   device_id: <Gerät>
-  command: "help"        # CP850/CP950: listet alle Parameter
+  command: "sys.macro_preset ?"   # -> ["sys.macro_preset 2"]
 response_variable: antwort
 ```
+
+Der CP850 beantwortet `help` und `status` nicht (leere Antwort); der CP750
+listet damit laut Handbuch alle Parameter.
 
 ## Schonender Umgang mit dem Gerät
 
@@ -123,19 +127,15 @@ Neustart wieder). Die Integration deshalb:
 - baut zum selben Gerät höchstens alle 3 s eine Verbindung auf und nach einem
   Verbindungsabbruch frühestens nach 10 s wieder.
 
-## Noch am Gerät zu prüfen
+## Getestet
 
 | Punkt | Stand |
 |-------|-------|
-| CP750 ASCII-Befehle | laut Handbuch, noch nicht am Gerät getestet |
-| CP850/CP950 Lautstärke-Skala (`sys.fader 70` = 7.0?) | angenommen wie CP750; Werte mit Komma (`7.0`) werden ebenfalls verstanden |
-| CP850/CP950 Makro wechseln per `sys.macro_preset <Nr>` | angenommen, noch nicht getestet |
-| Atmos-Sensor CP850 | Ereignisse am Gerät mitgeschnitten (Atmos an/aus) |
-| Atmos-Sensor CP950A | gleiche Schnittstelle gesehen, Atmos-Durchlauf noch nicht |
-| Stört das Mitlesen von `get_updates` eine offene Weboberfläche? | noch offen – falls die Statusseite im Browser hakt, Zugangsdaten leer lassen |
-
-Hilfreich für die Prüfung: Aktion `send_command` mit `help` bzw. `status`
-(geht auch im Modus „Nur lesen“).
+| CP850: Lautstärke lesen/setzen, ±0,1, Mute, Makro lesen/wechseln (`sys.macro_preset <Nr>`) | am Gerät getestet (HA Mathilde, 13.10.2026); `sys.fader 40` = 4.0 |
+| CP850: Atmos-Ereignisse der Weboberfläche (an/aus) | am Gerät mitgeschnitten |
+| CP950/CP950A | gleiche ASCII-Befehle und gleiche Weboberfläche; Atmos-Durchlauf noch nicht |
+| CP750 | laut Handbuch, noch nicht am Gerät getestet |
+| Stört das Mitlesen von `get_updates` eine offene Weboberfläche? | noch offen – falls die Statusseite im Browser hakt, Benutzer leeren |
 
 ## Tests (ohne Home Assistant)
 

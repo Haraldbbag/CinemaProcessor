@@ -14,6 +14,7 @@ DEFAULT_PORT = 61408  # ASCII control (Telnet-style) on all Dolby processors
 CONF_WEB_USERNAME = "web_username"
 CONF_WEB_PASSWORD = "web_password"
 DEFAULT_WEB_USERNAME = "admin"
+DEFAULT_WEB_PASSWORD = "admin"  # Dolby factory default
 
 CONF_SCAN_INTERVAL = "scan_interval"
 CONF_READ_ONLY = "read_only"

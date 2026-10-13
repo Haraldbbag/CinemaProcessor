@@ -28,6 +28,7 @@ from .const import (
     CONF_WEB_USERNAME,
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
+    DEFAULT_WEB_PASSWORD,
     DEFAULT_WEB_USERNAME,
     DOMAIN,
     MODEL_CP750,
@@ -50,7 +51,7 @@ def _clean(model: str, user_input: dict[str, Any]) -> dict[str, Any]:
     }
     if model in ATMOS_MODELS and user_input.get(CONF_WEB_USERNAME):
         data[CONF_WEB_USERNAME] = user_input[CONF_WEB_USERNAME].strip()
-        data[CONF_WEB_PASSWORD] = user_input.get(CONF_WEB_PASSWORD, "")
+        data[CONF_WEB_PASSWORD] = user_input.get(CONF_WEB_PASSWORD) or DEFAULT_WEB_PASSWORD
     return data
 
 
@@ -63,7 +64,7 @@ def _schema(model: str, with_name: bool) -> vol.Schema:
         fields[vol.Optional(CONF_NAME)] = str
     if model in ATMOS_MODELS:
         fields[vol.Optional(CONF_WEB_USERNAME, default=DEFAULT_WEB_USERNAME)] = str
-        fields[vol.Optional(CONF_WEB_PASSWORD)] = _PASSWORD
+        fields[vol.Optional(CONF_WEB_PASSWORD, default=DEFAULT_WEB_PASSWORD)] = _PASSWORD
     return vol.Schema(fields)
 
 
@@ -141,8 +142,8 @@ class ProcessorConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             data = _clean(model, user_input)
             if CONF_WEB_USERNAME in data and not user_input.get(CONF_WEB_PASSWORD):
-                # Empty password field = keep the stored one.
-                data[CONF_WEB_PASSWORD] = entry.data.get(CONF_WEB_PASSWORD, "")
+                # Empty password field = keep the stored one (or the factory default).
+                data[CONF_WEB_PASSWORD] = entry.data.get(CONF_WEB_PASSWORD) or DEFAULT_WEB_PASSWORD
             if await self._try(data, errors) is not None:
                 return self.async_update_reload_and_abort(
                     entry, unique_id=data[CONF_HOST], data=data

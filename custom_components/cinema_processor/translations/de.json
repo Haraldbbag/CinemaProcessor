@@ -21,7 +21,7 @@
       },
       "cp850": {
         "title": "Dolby CP850",
-        "description": "Steuerport (ASCII) normalerweise 61408. Benutzer/Passwort der Weboberfläche werden nur für die Atmos-Anzeige gebraucht (leer lassen = keine Atmos-Anzeige). Wird zunächst im Modus „Nur lesen“ eingerichtet.",
+        "description": "Steuerport (ASCII) normalerweise 61408. Benutzer/Passwort der Weboberfläche (Werkseinstellung admin/admin) werden nur für die Atmos-Anzeige gebraucht (leer lassen = keine Atmos-Anzeige). Wird zunächst im Modus „Nur lesen“ eingerichtet.",
         "data": {
           "host": "Host",
           "port": "Port",
@@ -32,7 +32,7 @@
       },
       "cp950": {
         "title": "Dolby CP950 / CP950A",
-        "description": "Steuerport (ASCII) normalerweise 61408. Benutzer/Passwort der Weboberfläche werden nur für die Atmos-Anzeige gebraucht (nur CP950A; leer lassen = keine Atmos-Anzeige). Wird zunächst im Modus „Nur lesen“ eingerichtet.",
+        "description": "Steuerport (ASCII) normalerweise 61408. Benutzer/Passwort der Weboberfläche (Werkseinstellung admin/admin) werden nur für die Atmos-Anzeige gebraucht (nur CP950A; leer lassen = keine Atmos-Anzeige). Wird zunächst im Modus „Nur lesen“ eingerichtet.",
         "data": {
           "host": "Host",
           "port": "Port",
@@ -99,10 +99,10 @@
     },
     "button": {
       "fader_up": {
-        "name": "Lauter (+0,1)"
+        "name": "Lauter"
       },
       "fader_down": {
-        "name": "Leiser (−0,1)"
+        "name": "Leiser"
       }
     },
     "binary_sensor": {

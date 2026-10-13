@@ -21,7 +21,7 @@
       },
       "cp850": {
         "title": "Dolby CP850",
-        "description": "ASCII control port is usually 61408. The web interface login is only needed for the Atmos sensor (leave empty = no Atmos sensor). Starts in read-only mode.",
+        "description": "ASCII control port is usually 61408. The web interface login (factory default admin/admin) is only needed for the Atmos sensor (leave empty = no Atmos sensor). Starts in read-only mode.",
         "data": {
           "host": "Host",
           "port": "Port",
@@ -32,7 +32,7 @@
       },
       "cp950": {
         "title": "Dolby CP950 / CP950A",
-        "description": "ASCII control port is usually 61408. The web interface login is only needed for the Atmos sensor (CP950A only; leave empty = no Atmos sensor). Starts in read-only mode.",
+        "description": "ASCII control port is usually 61408. The web interface login (factory default admin/admin) is only needed for the Atmos sensor (CP950A only; leave empty = no Atmos sensor). Starts in read-only mode.",
         "data": {
           "host": "Host",
           "port": "Port",
@@ -99,10 +99,10 @@
     },
     "button": {
       "fader_up": {
-        "name": "Volume up (+0.1)"
+        "name": "Volume up"
       },
       "fader_down": {
-        "name": "Volume down (−0.1)"
+        "name": "Volume down"
       }
     },
     "binary_sensor": {
