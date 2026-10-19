@@ -51,7 +51,12 @@ class State:
         self.log: list[str] = []
         self.connections = 0
         self.events: list[dict] = []  # pending web events
-        self.atmos_playing = False
+        self.atmos_playing = False  # Atmos stream arrives from the server
+        self.force_pcm = False  # "ignore Dolby Atmos" pressed
+
+    @property
+    def atmos_rendered(self) -> bool:
+        return self.atmos_playing and not self.force_pcm
 
     def params(self) -> dict[str, str]:
         p = self.prefix
@@ -96,6 +101,9 @@ def handle(st: State, line: str) -> list[str]:
     elif key == "cp750.sys.input_mode" and value in INPUTS:
         st.input_mode = value
     elif key == "sys.macro_preset" and value.isdigit() and int(value) in MACROS:
+        if int(value) != st.macro and st.force_pcm:
+            st.force_pcm = False  # the CP850 reverts "ignore Dolby Atmos" on macro change
+            st.events.append({"id": "ForcePcmControlEvent_1066", "forcePCM": False})
         st.macro = int(value)
     return [f"{key} {st.params()[key]}"]
 
@@ -153,6 +161,18 @@ def start_http(st: State, host: str, port: int, user: str = "admin", password: s
 
         def do_POST(self) -> None:  # noqa: N802
             body = self.rfile.read(int(self.headers.get("Content-Length", 0))).decode()
+            if self.path.endswith("?send_message"):
+                if self.headers.get("SessionId") not in sessions:
+                    return self._send(401, b"")
+                st.log.append(f"web send {body}")
+                for event in json.loads(body):
+                    if str(event.get("id", "")).startswith("ForcePcmControlEvent"):
+                        was = st.atmos_rendered
+                        st.force_pcm = bool(event["forcePCM"])
+                        st.events.append({"id": "ForcePcmControlEvent_1066", "forcePCM": st.force_pcm})
+                        if was and not st.atmos_rendered:
+                            st.events.append(atmos_event(2))
+                return self._send(200, b"")
             if not self.path.endswith("?login"):
                 return self._send(404, b"")
             fields = dict(re.findall(r'name="([^"]+)"\r\n\r\n([^\r]*)\r\n', body))
@@ -171,7 +191,7 @@ def start_http(st: State, host: str, port: int, user: str = "admin", password: s
             if self.path.endswith("?get_updates"):
                 events = [{"id": "SpeakerMeterStateEvent_1005", "speakerIndex": 0,
                            "peakLevel": 20, "rmsLevel": 14}]
-                if st.atmos_playing:
+                if st.atmos_rendered:
                     frame[0] += 1
                     events.append(atmos_event(1, frame[0]))
                 events += st.events

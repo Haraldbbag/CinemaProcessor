@@ -126,6 +126,31 @@ async def _cp850() -> None:
         st.events.append(fake_dolby.atmos_event(2))
         await d.update(data)
         assert data.atmos is False and data.atmos_attrs["status_code"] == 2
+        # "ignore Dolby Atmos" for the QC: Atmos playing -> PCM forced -> back
+        st.atmos_playing = True
+        await d.update(data)
+        assert data.atmos is True and data.force_pcm is False, data
+        await d.set_force_pcm(True)
+        assert 'web send [{"id":"ForcePcmControlEvent_1066", "forcePCM":true}]' in st.log, st.log
+        await d.update(data)
+        assert data.atmos is False and data.force_pcm is True, data
+        assert data.atmos_attrs["pcm_forced"] is True and data.atmos_attrs["last_change"]
+        await d.set_force_pcm(False)
+        await d.update(data)
+        assert data.atmos is True and data.force_pcm is False, data
+        # macro change reverts it on the processor; the switch follows
+        await d.set_force_pcm(True)
+        await d.update(data)
+        assert data.force_pcm is True
+        await d.select_source("Pausenmusik")
+        await d.update(data)
+        assert data.force_pcm is False and data.source == "Pausenmusik", data
+        await d.select_source("5.1 + Dolby Atmos")
+        st.atmos_playing = False
+        st.events.append(fake_dolby.atmos_event(2))
+        await d.update(data)
+        assert data.atmos is False
+
         # session expires (e.g. processor rebooted): logs in again by itself
         http.expire_sessions()
         await d.update(data)

@@ -102,6 +102,9 @@ class ProcessorCoordinator(DataUpdateCoordinator[ProcessorData]):
     async def async_set_mute(self, mute: bool) -> None:
         await self._do(lambda: self.driver.set_mute(mute))
 
+    async def async_set_force_pcm(self, force: bool) -> None:
+        await self._do(lambda: self.driver.set_force_pcm(force))
+
     async def async_select_source(self, name: str) -> None:
         await self._do(lambda: self.driver.select_source(name))
 

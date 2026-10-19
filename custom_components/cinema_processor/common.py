@@ -38,4 +38,5 @@ class ProcessorData:
     sources: list[str] = field(default_factory=list)
     atmos: bool | None = None  # Dolby Atmos is really being rendered
     atmos_attrs: dict[str, Any] = field(default_factory=dict)
+    force_pcm: bool | None = None  # "ignore Dolby Atmos" active (CP850/CP950A)
     web_error: str | None = None

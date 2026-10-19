@@ -59,6 +59,7 @@ ersten erfolgreichen Test in den Optionen ausschalten.
 | **Schalter „Mute“** | `cp750.sys.mute` | `sys.mute` |
 | **Buttons „Lauter“ / „Leiser“** (±0,1) | `cp750.ctrl.fader_delta ±1` (= ±0,1) | `ctrl.fader_delta ±1` |
 | **Binärsensor „Dolby Atmos“** | – | an, solange Atmos **wirklich gerendert** wird |
+| **Schalter „Atmos ignorieren (PCM)“** | – | wie Button „ignore Dolby Atmos“ der Weboberfläche: an = PCM-Fallback wird gespielt |
 | Binärsensor „Verbunden“ | Diagnose | Diagnose |
 
 Die Buttons ändern die Lautstärke relativ – ein gleichzeitiger Dreh am Knopf
@@ -97,10 +98,34 @@ meldet sie sich selbst neu an. Solange Atmos läuft, meldet das Gerät laufend
 Bleiben die Meldungen 20 s aus, gilt Atmos ebenfalls als beendet.
 
 Attribute des Sensors: `status_code`, `reversion_reason` (Rückfallgrund, wie
-vom Gerät gemeldet), `frame_rate`, `uuid`, `encrypted`.
+vom Gerät gemeldet), `frame_rate`, `uuid`, `encrypted`, `pcm_forced`
+(Schalter „Atmos ignorieren“ an) und `last_change` (Zeitpunkt des letzten
+Wechsels Atmos ↔ PCM, auf die Millisekunde).
 
-Ist die Weboberfläche nicht erreichbar oder das Passwort falsch, wird nur der
-Atmos-Sensor „nicht verfügbar“; Lautstärke, Mute und Makro laufen weiter.
+Ist die Weboberfläche nicht erreichbar oder das Passwort falsch, werden nur
+Atmos-Sensor und Atmos-Schalter „nicht verfügbar“; Lautstärke, Mute und Makro
+laufen weiter.
+
+### Atmos ignorieren (QC: PCM-Fallback gegen Atmos)
+
+Der Schalter macht dasselbe wie der Button „ignore Dolby Atmos“ auf der
+Statusseite der Weboberfläche: Der Prozessor spielt dann die PCM-Spur vom
+AES-Eingang, also die Fallback-Ebene für Atmos. Gedacht für die
+Qualitätskontrolle, ob PCM- und Atmos-Ton synchron sind – beim Umschalten
+sollte nichts zu hören sein.
+
+- Gesendet wird wie von der Weboberfläche
+  `POST TroutMockData?send_message` mit
+  `[{"id":"ForcePcmControlEvent_1066", "forcePCM":true}]` (bzw. `false`).
+- Der Zustand des Schalters kommt vom Gerät (`ForcePcmControlEvent`), nicht
+  aus einer Annahme. Am CP850 gemessen: PCM ca. 0,3 s, zurück zu Atmos ca.
+  0,1 s nach dem Befehl.
+- Der Prozessor schaltet nach **Makrowechsel oder Neustart** von selbst wieder
+  auf Atmos; der Schalter folgt. Nach einem Neustart von Home Assistant ist der
+  Zustand bis zum nächsten Wechsel unbekannt – sobald Atmos gerendert wird,
+  steht er sicher auf „aus“.
+- Die Weboberfläche fragt vor dem Umschalten nach einer Anmeldung; die
+  Integration nutzt dafür die eingetragenen Zugangsdaten.
 
 ## Aktion `cinema_processor.send_command`
 
@@ -136,6 +161,7 @@ Neustart wieder). Die Integration deshalb:
 |-------|-------|
 | CP850: Lautstärke lesen/setzen, ±0,1, Mute, Makro lesen/wechseln (`sys.macro_preset <Nr>`) | am Gerät getestet (HA Mathilde, 13.10.2026); `sys.fader 40` = 4.0 |
 | CP850: Atmos-Ereignisse der Weboberfläche (an/aus) | am Gerät mitgeschnitten |
+| CP850: „ignore Dolby Atmos“ (`ForcePcmControlEvent`) | Befehl und Rückmeldung am Gerät mitgeschnitten (19.10.2026) |
 | CP950/CP950A | gleiche ASCII-Befehle und gleiche Weboberfläche; Atmos-Durchlauf noch nicht |
 | CP750 | laut Handbuch, noch nicht am Gerät getestet |
 | Stört die zusätzliche Web-Anmeldung eine offene Weboberfläche im Browser? | noch offen – falls der Browser abgemeldet wird oder die Statusseite hakt, Benutzer leeren |

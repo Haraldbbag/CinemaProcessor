@@ -19,6 +19,12 @@
         "state": {
           "on": "mdi:volume-off"
         }
+      },
+      "force_pcm": {
+        "default": "mdi:dolby",
+        "state": {
+          "on": "mdi:surround-sound-5-1"
+        }
       }
     },
     "button": {

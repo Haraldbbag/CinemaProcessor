@@ -72,7 +72,7 @@
           "macros": "Macro names"
         },
         "data_description": {
-          "read_only": "Blocks all commands (input/macro, volume, mute, writing raw commands).",
+          "read_only": "Blocks all commands (input/macro, volume, mute, ignore Atmos, writing raw commands).",
           "macros": "One macro per line as \"number=name\", e.g. 1=5.1 + Dolby Atmos. Macros that were active once are learned automatically."
         }
       }
@@ -95,6 +95,9 @@
     "switch": {
       "mute": {
         "name": "Mute"
+      },
+      "force_pcm": {
+        "name": "Ignore Atmos (PCM)"
       }
     },
     "button": {
@@ -123,6 +126,12 @@
           },
           "encrypted": {
             "name": "Encrypted"
+          },
+          "pcm_forced": {
+            "name": "PCM forced"
+          },
+          "last_change": {
+            "name": "Last change"
           }
         }
       },

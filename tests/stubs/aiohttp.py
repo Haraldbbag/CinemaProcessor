@@ -55,6 +55,9 @@ class _Response:
         self.status = status
         self._body = body
 
+    async def read(self) -> bytes:
+        return self._body
+
     async def text(self, errors: str = "strict") -> str:
         return self._body.decode("utf-8", errors=errors)
 

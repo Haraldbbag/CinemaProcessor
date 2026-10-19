@@ -93,6 +93,7 @@ class DolbyDriver:
         self.learned_macros: dict[int, str] = {}
         self.learned_changed = False
         self.mute_supported = True
+        self._last_macro: int | None = None
 
     # -- capabilities -------------------------------------------------------
 
@@ -154,6 +155,8 @@ class DolbyDriver:
             data.sources = list(CP750_INPUTS.values())
         if self.web is not None:
             await self._update_atmos(data)
+        else:
+            data.force_pcm = None
 
     async def _update_macro(self, data: ProcessorData) -> None:
         number_text = await self.ascii.query("sys.macro_preset")
@@ -166,6 +169,11 @@ class DolbyDriver:
             number = int(number_text.strip().strip('"'))
         except ValueError:
             number = None
+        if number is not None and number != self._last_macro:
+            if self._last_macro is not None:
+                # The processor reverts "ignore Dolby Atmos" on every macro change.
+                self.atmos.force_pcm = False
+            self._last_macro = number
         if number is not None and name and self.learned_macros.get(number) != name:
             self.learned_macros[number] = name
             self.learned_changed = True
@@ -191,6 +199,7 @@ class DolbyDriver:
         data.web_error = None
         data.atmos = self.atmos.active()
         data.atmos_attrs = self.atmos.attributes()
+        data.force_pcm = self.atmos.force_pcm
 
     # -- commands -----------------------------------------------------------
 
@@ -203,6 +212,12 @@ class DolbyDriver:
 
     async def set_mute(self, mute: bool) -> None:
         await self.ascii.set(self._p("sys.mute"), 1 if mute else 0)
+
+    async def set_force_pcm(self, force: bool) -> None:
+        """'ignore Dolby Atmos' on the web UI: True = play the PCM fallback."""
+        if self.web is None:
+            raise ProcessorCommandError("Nur mit Zugangsdaten der Weboberfläche möglich")
+        await self.web.set_force_pcm(force)
 
     async def select_source(self, name: str) -> None:
         if self.uses_macros:

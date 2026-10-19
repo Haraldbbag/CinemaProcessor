@@ -10,7 +10,12 @@ processor keeps sending
 
 When Atmos stops it sends one event with "status": 2 (uuid "n/a"), then
 nothing more. Observed on a CP850; the CP950A uses the same interface.
-This client only ever sends GET requests.
+
+"ignore Dolby Atmos" button of the web UI (captured on a CP850):
+    POST /prototype/TroutMockData?send_message
+    [{"id":"ForcePcmControlEvent_1066", "forcePCM":true}]    (false = back)
+The processor confirms with the same event in get_updates. It reverts to
+Atmos by itself on reboot or macro change.
 """
 
 from __future__ import annotations
@@ -21,6 +26,7 @@ import logging
 import random
 import re
 import time
+from datetime import datetime, timezone
 from typing import Any
 
 import aiohttp
@@ -31,6 +37,9 @@ _LOGGER = logging.getLogger(__name__)
 
 UPDATES_PATH = "/prototype/TroutMockData?get_updates"
 LOGIN_PATH = "/prototype/TroutMockData?login"
+SEND_PATH = "/prototype/TroutMockData?send_message"
+FORCE_PCM_EVENT = "ForcePcmControlEvent"
+FORCE_PCM_ID = "ForcePcmControlEvent_1066"
 _SESSION_RE = re.compile(r"sessionId=([^;\s]*)")
 HTTP_TIMEOUT = 8.0
 
@@ -40,18 +49,32 @@ ATMOS_STALE = 20.0  # no Atmos event for this long while "playing" -> not playin
 
 
 class AtmosTracker:
-    """Turns the event stream into 'Atmos is rendered right now'."""
+    """Turns the event stream into 'Atmos is rendered right now' and 'PCM forced'."""
 
     def __init__(self) -> None:
         self.last: dict[str, Any] | None = None
         self.last_at: float | None = None
+        self.force_pcm: bool | None = None  # unknown until the processor tells us
+        self.changed_at: datetime | None = None  # last Atmos on/off change
+        self._was_active: bool | None = None
 
     def feed(self, events: list[Any], now: float | None = None) -> None:
         now = time.monotonic() if now is None else now
         for event in events:
-            if isinstance(event, dict) and str(event.get("id", "")).startswith(ATMOS_EVENT):
+            if not isinstance(event, dict):
+                continue
+            event_id = str(event.get("id", ""))
+            if event_id.startswith(ATMOS_EVENT):
                 self.last = event
                 self.last_at = now
+                if event.get("status") == ATMOS_PLAYING:
+                    self.force_pcm = False  # Atmos renders, so PCM is not forced
+            elif event_id.startswith(FORCE_PCM_EVENT) and "forcePCM" in event:
+                self.force_pcm = bool(event["forcePCM"])
+        active = self.active(now)
+        if self._was_active is not None and active != self._was_active:
+            self.changed_at = datetime.now(timezone.utc)
+        self._was_active = active
 
     def active(self, now: float | None = None) -> bool:
         now = time.monotonic() if now is None else now
@@ -69,6 +92,10 @@ class AtmosTracker:
             "frame_rate": e.get("frameRate") or None,
             "uuid": e.get("uuid") if e.get("uuid") not in (None, "n/a") else None,
             "encrypted": e.get("encrypted"),
+            "pcm_forced": self.force_pcm,
+            "last_change": self.changed_at.isoformat(timespec="milliseconds")
+            if self.changed_at
+            else None,
         }
 
 
@@ -184,6 +211,46 @@ class WebClient:
                 self._session_id = None
                 raise ProcessorAuthError("Weboberfläche: Sitzung abgelehnt") from None
         return events if isinstance(events, list) else [events]
+
+    async def _post(self, path: str, body: str) -> None:
+        headers = {"ClientId": self._client_id, "Content-Type": "text/plain; charset=utf-8"}
+        if self._session_id:
+            headers["SessionId"] = self._session_id
+        try:
+            async with self._http().post(
+                self.base + path,
+                data=body.encode("utf-8"),
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=HTTP_TIMEOUT),
+            ) as resp:
+                if resp.status in (401, 403):
+                    raise _SessionExpired
+                if resp.status != 200:
+                    raise ProcessorError(f"Weboberfläche: {path} -> HTTP {resp.status}")
+                await resp.read()
+        except (aiohttp.ClientError, asyncio.TimeoutError) as err:
+            raise ProcessorError(f"Weboberfläche nicht erreichbar: {err}") from err
+
+    async def send_message(self, body: str) -> None:
+        """Send a JSON event list exactly as the web UI does (logs in when needed)."""
+        _LOGGER.debug("%s send_message %s", self.base, body)
+        if self._session_id is None:
+            await self.login()
+        try:
+            await self._post(SEND_PATH, body)
+        except _SessionExpired:
+            await self.login()
+            try:
+                await self._post(SEND_PATH, body)
+            except _SessionExpired:
+                self._session_id = None
+                raise ProcessorAuthError("Weboberfläche: Sitzung abgelehnt") from None
+
+    async def set_force_pcm(self, force: bool) -> None:
+        # Same text as the web UI sends (including the space after the comma).
+        await self.send_message(
+            f'[{{"id":"{FORCE_PCM_ID}", "forcePCM":{"true" if force else "false"}}}]'
+        )
 
     async def close(self) -> None:
         if self._own_session and self._session is not None:

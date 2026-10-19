@@ -72,7 +72,7 @@
           "macros": "Makronamen"
         },
         "data_description": {
-          "read_only": "Blockiert alle Schaltbefehle (Eingang/Makro, Lautstärke, Mute, schreibende Rohbefehle).",
+          "read_only": "Blockiert alle Schaltbefehle (Eingang/Makro, Lautstärke, Mute, Atmos ignorieren, schreibende Rohbefehle).",
           "macros": "Ein Makro pro Zeile als „Nummer=Name“, z. B. 1=5.1 + Dolby Atmos. Makros, die einmal aktiv waren, lernt die Integration selbst."
         }
       }
@@ -95,6 +95,9 @@
     "switch": {
       "mute": {
         "name": "Mute"
+      },
+      "force_pcm": {
+        "name": "Atmos ignorieren (PCM)"
       }
     },
     "button": {
@@ -123,6 +126,12 @@
           },
           "encrypted": {
             "name": "Verschlüsselt"
+          },
+          "pcm_forced": {
+            "name": "PCM erzwungen"
+          },
+          "last_change": {
+            "name": "Letzter Wechsel"
           }
         }
       },
