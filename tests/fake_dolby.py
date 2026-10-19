@@ -127,6 +127,21 @@ async def start_ascii(st: State, host: str, port: int) -> asyncio.base_events.Se
     return await asyncio.start_server(client, host, port)
 
 
+def macro_config_events() -> list[dict]:
+    """MacroConfigurationEvent list as the CP850 sends it (all slots, few defined)."""
+    out = []
+    index = 0
+    for button, name in MACROS.items():
+        out.append({"id": "MacroConfigurationEvent_1032", "macroIndex": index,
+                    "defined": True, "buttonAssignment": button, "name": name})
+        index += 1
+    out.append({"id": "MacroConfigurationEvent_1032", "macroIndex": index,
+                "defined": True, "buttonAssignment": 0, "name": "ProTools 5.1"})
+    out.append({"id": "MacroConfigurationEvent_1032", "macroIndex": 99,
+                "defined": False, "buttonAssignment": 0, "name": "NewMacro100"})
+    return out
+
+
 def atmos_event(status: int, frame: int = 1) -> dict:
     playing = status == 1
     return {
@@ -188,7 +203,10 @@ def start_http(st: State, host: str, port: int, user: str = "admin", password: s
                 return self._send(200, b"shutdown_required=false;\nproduct=CP850;\n", "text/plain")
             if self.headers.get("SessionId") not in sessions:
                 return self._send(401, b"")
-            if self.path.endswith("?get_updates"):
+            if "?get_updates" in self.path:
+                if "required=" in self.path and "MacroConfigurationEvent_1032" in self.path:
+                    st.log.append("web required macros")
+                    st.events = macro_config_events() + st.events
                 events = [{"id": "SpeakerMeterStateEvent_1005", "speakerIndex": 0,
                            "peakLevel": 20, "rmsLevel": 14}]
                 if st.atmos_rendered:

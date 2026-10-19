@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from typing import TYPE_CHECKING
 
 from .ascii_client import AsciiClient
@@ -15,12 +16,14 @@ from .common import (
     ProcessorInfo,
 )
 from .const import ATMOS_MODELS, MODEL_CP750, MODEL_NAMES
-from .web_client import AtmosTracker, WebClient
+from .web_client import MACRO_CONFIG_ID, AtmosTracker, WebClient, button_macros
 
 if TYPE_CHECKING:
     import aiohttp
 
 _LOGGER = logging.getLogger(__name__)
+
+MACRO_REFRESH = 600  # seconds between re-reading the macro list from the web UI
 
 # CP750 inputs: value of cp750.sys.input_mode -> name shown in Home Assistant
 CP750_INPUTS = {
@@ -91,6 +94,8 @@ class DolbyDriver:
         self.atmos = AtmosTracker()
         self.configured_macros = parse_macro_list(macros_text)
         self.learned_macros: dict[int, str] = {}
+        self.device_macros: dict[int, str] | None = None  # front-panel buttons, from the web UI
+        self._macros_read_at: float | None = None
         self.learned_changed = False
         self.mute_supported = True
         self._last_macro: int | None = None
@@ -109,6 +114,10 @@ class DolbyDriver:
         return self.prefix + key
 
     def macros(self) -> dict[int, str]:
+        if self.device_macros:
+            merged = dict(self.device_macros)
+            merged.update(self.configured_macros)
+            return dict(sorted(merged.items()))
         merged = dict(self.learned_macros)
         merged.update(self.configured_macros)
         return dict(sorted(merged.items()))
@@ -155,6 +164,8 @@ class DolbyDriver:
             data.sources = list(CP750_INPUTS.values())
         if self.web is not None:
             await self._update_atmos(data)
+            if self.uses_macros:
+                data.sources = list(self.macros().values())
         else:
             data.force_pcm = None
 
@@ -186,8 +197,20 @@ class DolbyDriver:
 
     async def _update_atmos(self, data: ProcessorData) -> None:
         assert self.web is not None
+        now = time.monotonic()
+        want_macros = self.uses_macros and (
+            self._macros_read_at is None or now - self._macros_read_at > MACRO_REFRESH
+        )
         try:
-            self.atmos.feed(await self.web.poll())
+            events = await self.web.poll([MACRO_CONFIG_ID] if want_macros else None)
+            self.atmos.feed(events)
+            if want_macros:
+                self._macros_read_at = now
+                macros = button_macros(events)
+                if macros is not None:
+                    if macros != self.device_macros:
+                        _LOGGER.debug("%s: macros on buttons: %s", self.ascii.host, macros)
+                    self.device_macros = macros
         except ProcessorAuthError as err:
             data.web_error = str(err)
             data.atmos = None

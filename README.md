@@ -68,18 +68,25 @@ Integration den Zustand sofort neu ein.
 
 ### Makros (CP850/CP950)
 
-Über ASCII liefert der Prozessor nur Nummer und Name des **aktiven** Makros,
-keine Liste aller Makros. Die Integration merkt sich deshalb jedes Makro, das
-einmal aktiv war (bleibt über Neustarts erhalten). Damit von Anfang an alle
-Makros in der Auswahl stehen, in den Optionen eintragen – ein Makro pro Zeile,
-Nummer = „front panel button“ bzw. Makro-Reihenfolge im Makro-Editor des Geräts
-(das ist die Zahl, die `sys.macro_preset` liefert):
+Die Auswahl enthält die Makros, die im Makro-Editor des Geräts auf einer
+**Taste (front panel button 1–8)** liegen – das sind die, die
+`sys.macro_preset` per ASCII schalten kann. Makros ohne Taste erscheinen nicht.
+
+- **Mit Zugangsdaten der Weboberfläche** liest die Integration diese Liste
+  selbst vom Gerät (`MacroConfigurationEvent`, alle 10 Minuten neu).
+  Umbenennen oder neu belegen am Gerät kommt also von allein an.
+- **Ohne Zugangsdaten** liefert ASCII nur das **aktive** Makro. Die Integration
+  merkt sich dann jedes Makro, das einmal aktiv war. Damit von Anfang an alle in
+  der Auswahl stehen, in den Optionen eintragen – ein Makro pro Zeile als
+  `Tastennummer=Name`:
 
 ```
-1=5.1 + Dolby Atmos
-2=7.1 + Dolby Atmos
-6=Pausenmusik
+1=7.1 Dolby Surround + Dolby Atmos
+2=5.1 + Dolby Atmos
+3=BluRay mit Upmix
 ```
+
+Ein Eintrag in den Optionen überschreibt den Namen vom Gerät.
 
 ### Dolby Atmos
 

@@ -73,7 +73,7 @@
         },
         "data_description": {
           "read_only": "Blocks all commands (input/macro, volume, mute, ignore Atmos, writing raw commands).",
-          "macros": "One macro per line as \"number=name\", e.g. 1=5.1 + Dolby Atmos. Macros that were active once are learned automatically."
+          "macros": "Only needed without the web interface login: one macro per line as \"button number=name\", e.g. 2=5.1 + Dolby Atmos. With the login the integration reads the macros on buttons 1–8 from the processor."
         }
       }
     }

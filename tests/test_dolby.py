@@ -42,6 +42,9 @@ def test_parsing() -> None:
         6: "Pausenmusik",
     }
     assert parse_macro_list("A\nB") == {1: "A", 2: "B"}
+    from cinema_processor.web_client import button_macros
+    assert button_macros([{"id": "AtmosContentEvent_1015"}]) is None
+    assert button_macros(fake_dolby.macro_config_events()) == fake_dolby.MACROS
 
 
 def test_tracker() -> None:
@@ -107,7 +110,12 @@ async def _cp850() -> None:
         data = ProcessorData()
         await d.update(data)
         assert data.fader == 7.0 and data.source == "Pausenmusik", data
-        assert data.sources == ["5.1 + Dolby Atmos", "Pausenmusik"], data.sources
+        # with web login: the button macros come from the processor (no ProTools,
+        # no undefined slots); the option text still overrides a name
+        assert data.sources == ["5.1 + Dolby Atmos", "7.1 + Dolby Atmos", "Pausenmusik"], data.sources
+        assert "web required macros" in st.log
+        await d.update(data)
+        assert st.log.count("web required macros") == 1  # not on every poll
         assert d.learned_changed and d.learned_macros == {6: "Pausenmusik"}
         assert data.atmos is False and data.web_error is None
 

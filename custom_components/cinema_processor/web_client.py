@@ -40,6 +40,28 @@ LOGIN_PATH = "/prototype/TroutMockData?login"
 SEND_PATH = "/prototype/TroutMockData?send_message"
 FORCE_PCM_EVENT = "ForcePcmControlEvent"
 FORCE_PCM_ID = "ForcePcmControlEvent_1066"
+MACRO_CONFIG_ID = "MacroConfigurationEvent_1032"
+
+
+def button_macros(events: list[Any]) -> dict[int, str] | None:
+    """Macros on the front-panel buttons from MacroConfigurationEvent entries.
+
+    {button number: name}; the button number is what sys.macro_preset uses.
+    None if the events contain no macro configuration at all.
+    """
+    found = False
+    macros: dict[int, str] = {}
+    for event in events:
+        if not isinstance(event, dict):
+            continue
+        if not str(event.get("id", "")).startswith("MacroConfigurationEvent"):
+            continue
+        found = True
+        button = event.get("buttonAssignment") or 0
+        name = str(event.get("name") or "").strip()
+        if event.get("defined") and isinstance(button, int) and button > 0 and name:
+            macros[button] = name
+    return dict(sorted(macros.items())) if found else None
 _SESSION_RE = re.compile(r"sessionId=([^;\s]*)")
 HTTP_TIMEOUT = 8.0
 
@@ -197,16 +219,23 @@ class WebClient:
             _LOGGER.debug("%s: no JSON from %s: %.200s", self.base, path, text)
             return []
 
-    async def poll(self) -> list[Any]:
-        """Return the events since the last poll (logs in when needed)."""
+    async def poll(self, required: list[str] | None = None) -> list[Any]:
+        """Return the events since the last poll (logs in when needed).
+
+        required: event ids whose full current state the processor should send
+        along (the web UI does this with "&required=..." on start-up).
+        """
+        path = UPDATES_PATH
+        if required:
+            path += "&required=" + ",".join(required)
         if self._session_id is None:
             await self.login()
         try:
-            events = await self._get(UPDATES_PATH)
+            events = await self._get(path)
         except _SessionExpired:
             await self.login()  # session timed out or processor rebooted
             try:
-                events = await self._get(UPDATES_PATH)
+                events = await self._get(path)
             except _SessionExpired:
                 self._session_id = None
                 raise ProcessorAuthError("Weboberfläche: Sitzung abgelehnt") from None

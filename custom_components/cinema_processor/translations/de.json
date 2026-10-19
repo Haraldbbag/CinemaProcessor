@@ -73,7 +73,7 @@
         },
         "data_description": {
           "read_only": "Blockiert alle Schaltbefehle (Eingang/Makro, Lautstärke, Mute, Atmos ignorieren, schreibende Rohbefehle).",
-          "macros": "Ein Makro pro Zeile als „Nummer=Name“, z. B. 1=5.1 + Dolby Atmos. Makros, die einmal aktiv waren, lernt die Integration selbst."
+          "macros": "Nur nötig ohne Zugangsdaten der Weboberfläche: ein Makro pro Zeile als „Tastennummer=Name“, z. B. 2=5.1 + Dolby Atmos. Mit Zugangsdaten liest die Integration die Makros der Tasten 1–8 selbst vom Gerät."
         }
       }
     }
