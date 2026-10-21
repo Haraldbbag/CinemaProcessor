@@ -20,6 +20,7 @@ from . import create_driver
 from .common import ProcessorAuthError, ProcessorError, ProcessorInfo
 from .const import (
     ATMOS_MODELS,
+    CONF_INPUTS,
     CONF_MACROS,
     CONF_MODEL,
     CONF_READ_ONLY,
@@ -172,5 +173,9 @@ class ProcessorOptionsFlow(OptionsFlow):
         if self.config_entry.data.get(CONF_MODEL) != MODEL_CP750:
             fields[
                 vol.Optional(CONF_MACROS, description={"suggested_value": opts.get(CONF_MACROS, "")})
+            ] = TextSelector(TextSelectorConfig(multiline=True))
+        else:
+            fields[
+                vol.Optional(CONF_INPUTS, description={"suggested_value": opts.get(CONF_INPUTS, "")})
             ] = TextSelector(TextSelectorConfig(multiline=True))
         return self.async_show_form(step_id="init", data_schema=vol.Schema(fields))

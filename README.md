@@ -49,6 +49,7 @@ ersten erfolgreichen Test in den Optionen ausschalten.
 | Abfrageintervall | 5 s | Polling von Lautstärke, Mute, Eingang/Makro, Atmos |
 | Nur lesen | an | Blockiert alle Schaltbefehle |
 | Makronamen | leer | nur CP850/CP950, siehe unten |
+| Eingangsnamen | leer | nur CP750, siehe unten |
 
 ## Entitäten
 
@@ -65,6 +66,24 @@ ersten erfolgreichen Test in den Optionen ausschalten.
 Die Buttons ändern die Lautstärke relativ – ein gleichzeitiger Dreh am Knopf
 des Geräts wird damit nicht überschrieben. Nach jedem Befehl liest die
 Integration den Zustand sofort neu ein.
+
+### Eingänge (CP750)
+
+Statt „Digital 1“ usw. lassen sich eigene Namen vergeben: **⋮ → Optionen →
+Eingangsnamen**, ein Eingang pro Zeile als `Eingang=Name`:
+
+```
+dig_1=Kinoserver
+dig_2=Blu-ray
+non_sync=Pausenmusik
+mic=Mikro
+```
+
+Eingänge: `dig_1` bis `dig_4`, `analog` (Multi-Ch Analog), `non_sync`, `mic`
+(die Standardnamen wie `Digital 1` gehen auch). **Nur eingetragene Eingänge
+stehen dann in der Auswahl**; ist der CP750 gerade auf einem nicht
+eingetragenen Eingang, wird dieser trotzdem angezeigt. Leer = alle sieben mit
+Standardnamen.
 
 ### Makros (CP850/CP950)
 

@@ -69,11 +69,13 @@
         "data": {
           "scan_interval": "Scan interval (s)",
           "read_only": "Read only",
-          "macros": "Macro names"
+          "macros": "Macro names",
+          "inputs": "Input names (CP750)"
         },
         "data_description": {
           "read_only": "Blocks all commands (input/macro, volume, mute, ignore Atmos, writing raw commands).",
-          "macros": "Only needed without the web interface login: one macro per line as \"button number=name\", e.g. 2=5.1 + Dolby Atmos. With the login the integration reads the macros on buttons 1–8 from the processor."
+          "macros": "Only needed without the web interface login: one macro per line as \"button number=name\", e.g. 2=5.1 + Dolby Atmos. With the login the integration reads the macros on buttons 1–8 from the processor.",
+          "inputs": "One input per line as \"input=name\", inputs: dig_1, dig_2, dig_3, dig_4, analog, non_sync, mic – e.g. dig_1=Cinema server. Only listed inputs are offered; empty = all with default names."
         }
       }
     }

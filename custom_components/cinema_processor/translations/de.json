@@ -69,11 +69,13 @@
         "data": {
           "scan_interval": "Abfrageintervall (s)",
           "read_only": "Nur lesen",
-          "macros": "Makronamen"
+          "macros": "Makronamen",
+          "inputs": "Eingangsnamen (CP750)"
         },
         "data_description": {
           "read_only": "Blockiert alle Schaltbefehle (Eingang/Makro, Lautstärke, Mute, Atmos ignorieren, schreibende Rohbefehle).",
-          "macros": "Nur nötig ohne Zugangsdaten der Weboberfläche: ein Makro pro Zeile als „Tastennummer=Name“, z. B. 2=5.1 + Dolby Atmos. Mit Zugangsdaten liest die Integration die Makros der Tasten 1–8 selbst vom Gerät."
+          "macros": "Nur nötig ohne Zugangsdaten der Weboberfläche: ein Makro pro Zeile als „Tastennummer=Name“, z. B. 2=5.1 + Dolby Atmos. Mit Zugangsdaten liest die Integration die Makros der Tasten 1–8 selbst vom Gerät.",
+          "inputs": "Ein Eingang pro Zeile als „Eingang=Name“, Eingänge: dig_1, dig_2, dig_3, dig_4, analog, non_sync, mic – z. B. dig_1=Kinoserver. Nur eingetragene Eingänge stehen in der Auswahl; leer = alle mit Standardnamen."
         }
       }
     }

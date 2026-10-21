@@ -55,6 +55,25 @@ def parse_bool(value: str) -> bool:
     raise ValueError(value)
 
 
+def parse_input_names(text: str) -> dict[str, str]:
+    """Option text -> {input_mode: name}, e.g. 'dig_1=Kinoserver'.
+
+    Keys are the CP750 input_mode values (dig_1..dig_4, analog, non_sync, mic);
+    the default names ("Digital 1", "NonSync", ...) are accepted as well.
+    """
+    by_label = {label.lower(): mode for mode, label in CP750_INPUTS.items()}
+    names: dict[str, str] = {}
+    for line in (text or "").replace(";", "\n").splitlines():
+        if "=" not in line:
+            continue
+        key, _, name = line.partition("=")
+        key, name = key.strip().lower(), name.strip()
+        mode = key if key in CP750_INPUTS else by_label.get(key)
+        if mode and name:
+            names[mode] = name
+    return names
+
+
 def parse_macro_list(text: str) -> dict[int, str]:
     """Option text -> {macro number: name}. 'N=Name' lines, or plain names numbered 1, 2, ..."""
     macros: dict[int, str] = {}
@@ -84,6 +103,7 @@ class DolbyDriver:
         web_username: str | None = None,
         web_password: str | None = None,
         macros_text: str = "",
+        inputs_text: str = "",
         session: aiohttp.ClientSession | None = None,
     ) -> None:
         self.model = model
@@ -94,6 +114,13 @@ class DolbyDriver:
             self.web = WebClient(host, web_username, web_password or "", session)
         self.atmos = AtmosTracker()
         self.configured_macros = parse_macro_list(macros_text)
+        named = parse_input_names(inputs_text)
+        # Named inputs only (in the CP750's order); none named = all with default names.
+        self.inputs: dict[str, str] = (
+            {mode: named[mode] for mode in CP750_INPUTS if mode in named}
+            if named
+            else dict(CP750_INPUTS)
+        )
         self.learned_macros: dict[int, str] = {}
         self.device_macros: dict[int, str] | None = None  # front-panel buttons, from the web UI
         self._macros_read_at: float | None = None
@@ -161,8 +188,8 @@ class DolbyDriver:
             await self._update_macro(data)
         else:
             mode = (await q(self._p("sys.input_mode"))).lower()
-            data.source = CP750_INPUTS.get(mode, mode)
-            data.sources = list(CP750_INPUTS.values())
+            data.source = self.inputs.get(mode) or CP750_INPUTS.get(mode, mode)
+            data.sources = list(self.inputs.values())
         if self.web is not None:
             await self._update_atmos(data)
             if self.uses_macros:
@@ -256,7 +283,7 @@ class DolbyDriver:
                 await self.ascii.set("sys.macro_preset", int(m.group(1)))
                 return
             raise ProcessorCommandError(f"Unbekanntes Makro: {name}")
-        for mode, label in CP750_INPUTS.items():
+        for mode, label in [*self.inputs.items(), *CP750_INPUTS.items()]:
             if label == name:
                 await self.ascii.set(self._p("sys.input_mode"), mode)
                 return

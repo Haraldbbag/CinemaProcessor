@@ -15,6 +15,7 @@ from homeassistant.helpers.typing import ConfigType
 
 from .common import ProcessorError
 from .const import (
+    CONF_INPUTS,
     CONF_MACROS,
     CONF_MODEL,
     CONF_WEB_PASSWORD,
@@ -58,6 +59,7 @@ def create_driver(
         data.get(CONF_WEB_USERNAME),
         data.get(CONF_WEB_PASSWORD),
         (options or {}).get(CONF_MACROS, ""),
+        (options or {}).get(CONF_INPUTS, ""),
         async_get_clientsession(hass) if hass is not None else None,
     )
 

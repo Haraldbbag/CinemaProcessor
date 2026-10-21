@@ -19,6 +19,7 @@ DEFAULT_WEB_PASSWORD = "admin"  # Dolby factory default
 CONF_SCAN_INTERVAL = "scan_interval"
 CONF_READ_ONLY = "read_only"
 CONF_MACROS = "macros"
+CONF_INPUTS = "inputs"  # CP750 input names
 
 DEFAULT_SCAN_INTERVAL = 5  # seconds
 REFRESH_DELAY = 0.7  # seconds after a command before reading back

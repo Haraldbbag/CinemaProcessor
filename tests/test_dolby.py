@@ -87,6 +87,16 @@ async def _cp750() -> None:
             raise AssertionError("expected unsupported parameter")
         # still usable after the unknown parameter
         assert parse_fader(await d.ascii.query("cp750.sys.fader")) == 4.2
+        # own input names: only the named inputs, switching by name
+        named = DolbyDriver("127.0.0.1", 16408, "cp750", inputs_text="dig_1=Kinoserver\nNonSync=Pausenmusik\nfoo=bar")
+        named.ascii = d.ascii
+        assert named.inputs == {"dig_1": "Kinoserver", "non_sync": "Pausenmusik"}
+        await named.select_source("Pausenmusik")
+        await named.update(data)
+        assert data.source == "Pausenmusik" and data.sources == ["Kinoserver", "Pausenmusik"], data
+        await named.select_source("Digital 2")  # default name of a hidden input still works
+        await named.update(data)
+        assert data.source == "Digital 2", data  # current input stays visible
         replies = await d.send_raw("help")
         assert "cp750.sys.fader" in replies, replies
         assert st.connections == 1, st.connections  # one persistent connection
