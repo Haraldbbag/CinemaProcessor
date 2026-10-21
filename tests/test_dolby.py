@@ -227,12 +227,42 @@ async def _reconnect() -> None:
         await server.wait_closed()
 
 
+async def _silent_fader_step() -> None:
+    """CP950: fader_delta is executed but not echoed. Steps must be quick and
+    must not count as timeouts (which would drop the connection)."""
+    st = fake_dolby.State("cp950")
+    st.echo_fader_delta = False
+    server = await fake_dolby.start_ascii(st, "127.0.0.1", 16411)
+    d = DolbyDriver("127.0.0.1", 16411, "cp950")
+    try:
+        data = ProcessorData()
+        await d.update(data)
+        assert data.fader == 7.0
+        start = time.monotonic()
+        for _ in range(5):
+            await d.step_fader(1)
+        elapsed = time.monotonic() - start
+        assert elapsed < 5 * 0.6, elapsed  # was 5 x 2 s before the fix
+        await d.update(data)
+        assert data.fader == 7.5, data
+        for _ in range(2):
+            await d.step_fader(-1)
+        await d.update(data)
+        assert data.fader == 7.3, data
+        assert st.connections == 1, st.connections  # never dropped
+    finally:
+        await d.close()
+        server.close()
+        await server.wait_closed()
+
+
 def main() -> None:
     test_parsing()
     test_tracker()
     asyncio.run(_cp750())
     asyncio.run(_cp850())
     asyncio.run(_reconnect())
+    asyncio.run(_silent_fader_step())
     print("all tests passed")
 
 

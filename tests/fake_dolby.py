@@ -53,6 +53,7 @@ class State:
         self.events: list[dict] = []  # pending web events
         self.atmos_playing = False  # Atmos stream arrives from the server
         self.force_pcm = False  # "ignore Dolby Atmos" pressed
+        self.echo_fader_delta = True  # the CP950 executes fader_delta silently
 
     @property
     def atmos_rendered(self) -> bool:
@@ -88,7 +89,7 @@ def handle(st: State, line: str) -> list[str]:
     p = st.prefix
     if key == f"{p}ctrl.fader_delta":
         st.fader = max(0, min(100, st.fader + int(value)))
-        return [f"{key} {value}"]
+        return [f"{key} {value}"] if st.echo_fader_delta else []
     params = st.params()
     if key not in params:
         return [""]

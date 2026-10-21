@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 MACRO_REFRESH = 600  # seconds between re-reading the macro list from the web UI
+FADER_STEP_ECHO_TIMEOUT = 0.3  # fader_delta is not echoed by every model
 
 # CP750 inputs: value of cp750.sys.input_mode -> name shown in Home Assistant
 CP750_INPUTS = {
@@ -231,7 +232,9 @@ class DolbyDriver:
         await self.ascii.set(self._p("sys.fader"), int(round(value * 10)))
 
     async def step_fader(self, tenths: int) -> None:
-        await self.ascii.set(self._p("ctrl.fader_delta"), tenths)
+        # The CP950 executes fader_delta without echoing it; waiting the full
+        # SET_TIMEOUT would delay every step by 2 s and queue quick presses.
+        await self.ascii.set(self._p("ctrl.fader_delta"), tenths, echo_timeout=FADER_STEP_ECHO_TIMEOUT)
 
     async def set_mute(self, mute: bool) -> None:
         await self.ascii.set(self._p("sys.mute"), 1 if mute else 0)

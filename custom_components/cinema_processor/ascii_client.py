@@ -164,7 +164,7 @@ class AsciiClient:
                 raise ProcessorError(f"{self.host}: Verbindung getrennt") from None
             return None
 
-    async def _wait_value(self, key: str, timeout: float) -> str:
+    async def _wait_value(self, key: str, timeout: float, count_timeout: bool = True) -> str:
         key = key.lower()
         deadline = time.monotonic() + timeout
         saw_blank = False
@@ -180,9 +180,10 @@ class AsciiClient:
                 return parsed[1]
         if saw_blank:
             raise ProcessorCommandError(f"{key}: vom Gerät nicht unterstützt")
-        self._timeouts += 1
-        if self._timeouts >= MAX_TIMEOUTS:
-            await self._disconnect()
+        if count_timeout:
+            self._timeouts += 1
+            if self._timeouts >= MAX_TIMEOUTS:
+                await self._disconnect()
         raise ProcessorTimeout(f"{self.host}: keine Antwort auf {key}")
 
     # -- public -------------------------------------------------------------
@@ -195,14 +196,22 @@ class AsciiClient:
             await self._send(f"{key} ?")
             return await self._wait_value(key, REPLY_TIMEOUT)
 
-    async def set(self, key: str, value: str | int) -> str | None:
-        """Set a parameter. Returns the echoed value, or None if not echoed."""
+    async def set(
+        self, key: str, value: str | int, echo_timeout: float = SET_TIMEOUT
+    ) -> str | None:
+        """Set a parameter. Returns the echoed value, or None if not echoed.
+
+        A missing echo is not an error and does not count towards the
+        consecutive-timeout limit: some keys (e.g. ``ctrl.fader_delta`` on the
+        CP950) are executed but never echoed, and counting them would drop the
+        connection after a few quick presses.
+        """
         async with self._lock:
             await self._connect()
             self._drain()
             await self._send(f"{key} {value}")
             try:
-                return await self._wait_value(key, SET_TIMEOUT)
+                return await self._wait_value(key, echo_timeout, count_timeout=False)
             except ProcessorTimeout:
                 return None
 
